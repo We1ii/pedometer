@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- ===== iOS 背景与卡片 ===== -->
+    <color name="ios_bg">#F2F2F7</color>          <!-- 系统整体浅灰背景 -->
+    <color name="ios_card_bg">#FFFFFFFF</color>   <!-- 纯白卡片 -->
+    <color name="card_bg_trans">#F0FFFFFF</color> <!-- 半透明卡片（带模糊效果时可用） -->
+
+    <!-- ===== 文本颜色 ===== -->
+    <color name="ios_text_primary">#111111</color>   <!-- 主文本，接近黑色 -->
+    <color name="ios_text_secondary">#8E8E93</color> <!-- 次文本，iOS 系统灰 -->
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- ===== 分隔线与阴影 ===== -->
+    <color name="ios_separator">#D1D1D6</color> <!-- iOS 默认分隔线灰 -->
+    <color name="sheet_shadow">#33000000</color> <!-- 弹出层阴影 -->
+
+    <!-- ===== iOS 系统主色 ===== -->
+    <color name="ios_tint">#007AFF</color>   <!-- iOS 蓝色 Tint -->
+    <color name="accent">#5856D6</color>     <!-- iOS 紫色 Accent，可用于高亮 -->
+    <color name="ios_selected_bg">#E3F2FD</color> <!-- 选中项背景色 -->
+    <color name="drawer_background">#F3F4F6</color> <!-- 抽屉背景色 -->
+    <color name="card_background">#FFFFFF</color> <!-- 卡片背景色 -->
+    <color name="card_shadow">#1F000000</color> <!-- 卡片阴影 -->
+    <color name="border_color">#E5E7EB</color> <!-- 边框颜色 -->
+
+    <!-- ===== 图表线条配色（柔和版） ===== -->
+    <color name="line_x">#007AFF</color>   <!-- 蓝色曲线：X 轴 -->
+    <color name="line_y">#FF3B30</color>   <!-- 红色曲线：Y 轴 -->
+    <color name="line_z">#34C759</color>   <!-- 绿色曲线：Z 轴 -->
+    <color name="axis_grid">#E5E5EA</color> <!-- 网格线：浅灰 -->
+
+    <!-- ===== 过渡背景渐变（可选用于背景装饰） ===== -->
+    <color name="bg_start">#FAFAFC</color>
+    <color name="bg_end">#F2F2F7</color>
+
+    <!-- ===== 弹出层背景 ===== -->
+    <color name="sheet_bg">#FFFFFFFF</color>
+
+    <!-- ===== 兼容 Material 模板的默认色 ===== -->
+    <color name="purple_200">#BB86FC</color>
+    <color name="purple_700">#3700B3</color>
+    <color name="teal_200">#03DAC5</color>
+
+    <!-- ===== 关于页面专用颜色 ===== -->
+    <color name="primary">#3b82f6</color>
+    <color name="primary_light">#dbeafe</color>
+    <color name="primary_dark">#1e40af</color>
+    <color name="accent_green">#10b981</color>
+    <color name="accent_orange">#f97316</color>
+    <color name="accent_purple">#8b5cf6</color>
+    <color name="text_gray">#6b7280</color>
+    <color name="text_gray_light">#9ca3af</color>
+    <color name="bg_gradient_start">#dbeafe</color>
+    <color name="bg_gradient_end">#ffffff</color>
+
+    <!-- ===== 新主界面颜色 - 多彩渐变主题 ===== -->
+    <!-- 彩虹背景渐变 -->
+    <color name="gradient_bg_start">#dbeafe</color>        <!-- 天蓝 -->
+    <color name="gradient_bg_middle">#f0f9ff</color>       <!-- 浅蓝白 -->
+    <color name="gradient_bg_end">#e0f7fa</color>          <!-- 淡青 -->
+    <color name="gradient_bg_accent1">#f3e7ff</color>      <!-- 淡紫 -->
+    <color name="gradient_bg_accent2">#fef3e7</color>      <!-- 淡橙 -->
+
+    <!-- 标题栏多色渐变 -->
+    <color name="titlebar_gradient_1">#667eea</color>      <!-- 紫蓝 -->
+    <color name="titlebar_gradient_2">#764ba2</color>      <!-- 紫色 -->
+    <color name="titlebar_gradient_3">#f093fb</color>      <!-- 粉紫 -->
+    <color name="titlebar_gradient_4">#4facfe</color>      <!-- 天蓝 -->
+    <color name="titlebar_gradient_5">#00f2fe</color>      <!-- 青色 -->
+    <color name="titlebar_gradient_6">#43e97b</color>      <!-- 绿色 -->
+
+    <!-- 区域背景 -->
+    <color name="section_bg">#f9fafeff</color>             <!-- 半透明白 -->
+    <color name="section_bg_gradient">#fafcfe</color>      <!-- 极淡蓝白 -->
+    <color name="section_border">#e0e7ff</color>           <!-- 淡蓝边框 -->
+
+    <!-- 卡片颜色 -->
+    <color name="card_default_bg">#ffffff</color>          <!-- 纯白 -->
+    <color name="card_hover_bg">#f0f9ff</color>            <!-- 悬停淡蓝 -->
+
+    <!-- 卡片图标渐变色组 -->
+    <color name="icon_gradient_1_start">#667eea</color>    <!-- 紫蓝 -->
+    <color name="icon_gradient_1_end">#764ba2</color>      <!-- 紫色 -->
+    <color name="icon_gradient_2_start">#f093fb</color>    <!-- 粉紫 -->
+    <color name="icon_gradient_2_end">#f5576c</color>      <!-- 粉红 -->
+    <color name="icon_gradient_3_start">#43e97b</color>    <!-- 绿色 -->
+    <color name="icon_gradient_3_end">#38f9d7</color>      <!-- 青绿 -->
+    <color name="icon_gradient_4_start">#4facfe</color>    <!-- 天蓝 -->
+    <color name="icon_gradient_4_end">#00f2fe</color>      <!-- 青色 -->
+    <color name="icon_gradient_5_start">#fa709a</color>    <!-- 玫红 -->
+    <color name="icon_gradient_5_end">#fee140</color>      <!-- 黄色 -->
+    <color name="icon_gradient_6_start">#30cfd0</color>    <!-- 青色 -->
+    <color name="icon_gradient_6_end">#330867</color>      <!-- 深紫 -->
+    <color name="icon_gradient_7_start">#a8edea</color>    <!-- 淡青 -->
+    <color name="icon_gradient_7_end">#fed6e3</color>      <!-- 淡粉 -->
+    <color name="icon_gradient_8_start">#ff9a9e</color>    <!-- 粉色 -->
+    <color name="icon_gradient_8_end">#fecfef</color>      <!-- 淡粉 -->
+    <color name="icon_gradient_9_start">#ffecd2</color>    <!-- 淡橙 -->
+    <color name="icon_gradient_9_end">#fcb69f</color>      <!-- 橙粉 -->
+
+    <!-- 文字颜色 -->
+    <color name="text_section_title">#1e293b</color>       <!-- 深色标题 -->
+    <color name="text_primary_dark">#0f172a</color>        <!-- 深色文字 -->
+    <color name="text_secondary_gray">#64748b</color>      <!-- 灰色文字 -->
+
+    <!-- 阴影颜色 -->
+    <color name="card_shadow_colorful">#1a667eea</color>   <!-- 彩色阴影 -->
+    <color name="section_shadow">#0f667eea</color>         <!-- 区域阴影 -->
+
+    <!-- ===== 新界面专用颜色 - 蓝白灰三色协调方案 ===== -->
+    <!-- 主色：蓝色系 -->
+    <color name="app_primary_blue">#1E90FF</color>         <!-- 主蓝色 - 按钮、标题 -->
+    <color name="app_primary_blue_light">#4DA6FF</color>   <!-- 浅蓝色 - 悬停状态 -->
+    <color name="app_primary_blue_dark">#1873CC</color>    <!-- 深蓝色 - 按下状态 -->
+    <color name="app_blue_gradient_start">#1E90FF</color>  <!-- 渐变开始 -->
+    <color name="app_blue_gradient_end">#00BFFF</color>    <!-- 渐变结束（天蓝） -->
+
+    <!-- 辅助色：灰色系 -->
+    <color name="app_gray_bg">#F5F7FA</color>              <!-- 背景灰 -->
+    <color name="app_gray_light">#E8ECF1</color>           <!-- 浅灰 - 次要按钮 -->
+    <color name="app_gray_medium">#C4CDD5</color>          <!-- 中灰 - 边框 -->
+    <color name="app_gray_dark">#637381</color>            <!-- 深灰 - 次要文本 -->
+    <color name="app_gray_text">#919EAB</color>            <!-- 灰色文本 -->
+
+    <!-- 基础色：白色 -->
+    <color name="app_white">#FFFFFF</color>                <!-- 纯白 - 卡片、按钮文字 -->
+    <color name="app_white_transparent">#F0FFFFFF</color>  <!-- 半透明白 -->
+
+    <!-- 功能色 -->
+    <color name="app_text_primary">#212B36</color>         <!-- 主要文本 -->
+    <color name="app_text_secondary">#637381</color>       <!-- 次要文本 -->
+    <color name="app_divider">#DFE3E8</color>              <!-- 分割线 -->
+    <color name="app_shadow">#1A000000</color>             <!-- 阴影 -->
+
+    <!-- 复选框颜色 -->
+    <color name="checkbox_unchecked">#C4CDD5</color>       <!-- 未选中边框 -->
+    <color name="checkbox_checked">#1E90FF</color>         <!-- 选中颜色 -->
+
+    <!-- ===== 通用文本和表面颜色（用于 styles.xml） ===== -->
+    <color name="text_white">#FFFFFF</color>               <!-- 白色文本 -->
+    <color name="text_primary">#212B36</color>             <!-- 主要文本 -->
+    <color name="text_secondary">#637381</color>           <!-- 次要文本 -->
+    <color name="text_tertiary">#919EAB</color>            <!-- 三级文本 -->
+    <color name="surface_primary">#FFFFFF</color>          <!-- 主要表面颜色 -->
+    <color name="surface_secondary">#F8F9FA</color>       <!-- 次要表面颜色 -->
+    <color name="divider_light">#DFE3E8</color>            <!-- 浅色分割线 -->
+    <color name="divider">#DFE3E8</color>                  <!-- 分割线 -->
+
+    <!-- ===== 现代设计系统颜色调色板 ===== -->
+
+    <!-- 蓝色系 -->
+    <color name="modern_blue_50">#EBF5FF</color>           <!-- 极浅蓝 -->
+    <color name="modern_blue_100">#D1E9FF</color>          <!-- 浅蓝 -->
+    <color name="modern_blue_200">#A5D8FF</color>          <!-- 较浅蓝 -->
+    <color name="modern_blue_300">#74C0FC</color>          <!-- 中浅蓝 -->
+    <color name="modern_blue_400">#3B82F6</color>          <!-- 中蓝 -->
+    <color name="modern_blue_500">#2563EB</color>          <!-- 深蓝 -->
+
+    <!-- 紫色系 -->
+    <color name="modern_purple_50">#FAF5FF</color>         <!-- 极浅紫 -->
+    <color name="modern_purple_300">#C084FC</color>        <!-- 中浅紫 -->
+    <color name="modern_purple_400">#A855F7</color>        <!-- 紫色 -->
+    <color name="modern_purple_500">#9333EA</color>        <!-- 深紫 -->
+
+    <!-- 粉色系 -->
+    <color name="modern_pink_50">#FDF2F8</color>           <!-- 极浅粉 -->
+    <color name="modern_pink_300">#F472B6</color>          <!-- 中浅粉 -->
+    <color name="modern_pink_400">#EC4899</color>          <!-- 粉色 -->
+    <color name="modern_pink_500">#DB2777</color>          <!-- 深粉 -->
+
+    <!-- 绿色系 -->
+    <color name="modern_green_50">#ECFDF5</color>          <!-- 极浅绿 -->
+    <color name="modern_green_300">#6EE7B7</color>         <!-- 中浅绿 -->
+    <color name="modern_green_500">#10B981</color>         <!-- 深绿 -->
+
+    <!-- 玻璃形态颜色 -->
+    <color name="glass_white">#F0FFFFFF</color>            <!-- 玻璃白 -->
+    <color name="glass_border">#30FFFFFF</color>           <!-- 玻璃边框 -->
+
+    <!-- 渐变色组 -->
+    <color name="gradient_fluid_1_start">#667eea</color>   <!-- 流体渐变起始 -->
+    <color name="gradient_fluid_1_mid">#764ba2</color>     <!-- 流体渐变中间 -->
+    <color name="gradient_fluid_1_end">#f093fb</color>     <!-- 流体渐变结束 -->
+
+    <!-- 按钮状态颜色 -->
+    <color name="button_primary_hover">#1E40AF</color>     <!-- 主按钮悬停 -->
+    <color name="button_secondary_hover">#F0F9FF</color>   <!-- 次按钮悬停 -->
+
+    <!-- 阴影颜色 -->
+    <color name="shadow_subtle">#0A000000</color>          <!-- 微妙阴影 -->
+    <color name="shadow_soft">#20000000</color>            <!-- 柔和阴影 -->
+
+</resources>
