@@ -12,19 +12,20 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:padding="20dp"
+        android:padding="12dp"
         tools:layout_editor_absoluteX="0dp"
-        tools:layout_editor_absoluteY="0dp">>
+        tools:layout_editor_absoluteY="0dp">
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:orientation="vertical">
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
+                android:layout_marginBottom="10dp"
                 android:gravity="center"
                 android:shadowColor="#40000000"
                 android:shadowDx="0"
@@ -32,16 +33,16 @@
                 android:shadowRadius="12"
                 android:text="计步器"
                 android:textColor="@color/white"
-                android:textSize="20sp"
+                android:textSize="18sp"
                 android:textStyle="bold" />
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_marginBottom="16dp"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
                 app:cardBackgroundColor="#F7FFFFFF"
-                app:cardCornerRadius="24dp"
-                app:cardElevation="16dp"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="10dp"
                 app:strokeColor="#60FFFFFF"
                 app:strokeWidth="1dp">
 
@@ -49,20 +50,20 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="26dp">
+                    android:padding="16dp">
 
                     <!-- 卡片标题 - 带竖条装饰 -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="20dp"
+                        android:layout_marginBottom="14dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
                         <View
-                            android:layout_width="5dp"
-                            android:layout_height="28dp"
-                            android:layout_marginEnd="14dp"
+                            android:layout_width="4dp"
+                            android:layout_height="24dp"
+                            android:layout_marginEnd="12dp"
                             android:background="@drawable/title_bar_blue" />
 
                         <TextView
@@ -70,44 +71,79 @@
                             android:layout_height="wrap_content"
                             android:text="步数采集"
                             android:textColor="@color/app_text_primary"
-                            android:textSize="22sp"
+                            android:textSize="19sp"
                             android:textStyle="bold" />
                     </LinearLayout>
 
+                    <!-- 步数显示区域 - 美化版 -->
                     <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/input_modern"
+                        android:gravity="center"
                         android:orientation="vertical"
-                        android:background="@drawable/input_modern">
+                        android:paddingTop="12dp"
+                        android:paddingBottom="12dp"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp">
 
+                        <!-- 顶部提示文字 -->
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="4dp"
+                            android:letterSpacing="0.05"
+                            android:text="您当前行走了"
+                            android:textColor="@color/app_text_secondary"
+                            android:textSize="12sp" />
 
+                        <!-- 步数显示 - 突出显示 -->
                         <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:orientation="vertical">
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:orientation="horizontal">
 
                             <TextView
-                                android:layout_width="match_parent"
+                                android:id="@+id/tv_step_count"
+                                android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="您当前行走了"></TextView>
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:orientation="vertical">
+                                android:fontFamily="sans-serif-light"
+                                android:shadowColor="#40000000"
+                                android:shadowDx="0"
+                                android:shadowDy="2"
+                                android:shadowRadius="5"
+                                android:text="0"
+                                android:textColor="@color/modern_blue_500"
+                                android:textSize="36sp"
+                                android:textStyle="bold" />
 
                             <TextView
-                                android:layout_width="match_parent"
+                                android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="0步"></TextView>
+                                android:layout_gravity="bottom"
+                                android:layout_marginStart="4dp"
+                                android:layout_marginBottom="4dp"
+                                android:text="步"
+                                android:textColor="@color/app_text_primary"
+                                android:textSize="18sp"
+                                android:textStyle="bold" />
                         </LinearLayout>
+
+                        <!-- 步行图标装饰 -->
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="👣"
+                            android:textSize="18sp" />
                     </LinearLayout>
 
                     <!-- 按钮行 -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
                         android:orientation="horizontal"
                         android:weightSum="2">
 
@@ -116,30 +152,30 @@
                             style="@style/Widget.MaterialComponents.Button"
                             android:layout_width="0dp"
                             android:layout_height="58dp"
-                            android:layout_marginEnd="6dp"
+                            android:layout_marginEnd="5dp"
                             android:layout_weight="1"
                             android:text="开始计步"
                             android:textColor="@color/app_white"
-                            android:textSize="16sp"
+                            android:textSize="14sp"
                             android:textStyle="bold"
                             app:backgroundTint="@color/modern_blue_500"
-                            app:cornerRadius="14dp"
-                            app:elevation="4dp" />
+                            app:cornerRadius="10dp"
+                            app:elevation="3dp" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_open_folder"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                             android:layout_width="0dp"
                             android:layout_height="58dp"
-                            android:layout_marginStart="6dp"
+                            android:layout_marginStart="5dp"
                             android:layout_weight="1"
                             android:text="打开文件夹"
                             android:textColor="@color/app_text_primary"
-                            android:textSize="16sp"
+                            android:textSize="14sp"
                             app:backgroundTint="@color/app_gray_light"
-                            app:cornerRadius="14dp"
+                            app:cornerRadius="10dp"
                             app:strokeColor="@color/app_gray_medium"
-                            app:strokeWidth="2dp" />
+                            app:strokeWidth="1.5dp" />
                     </LinearLayout>
                 </LinearLayout>
 
@@ -147,18 +183,19 @@
 
             <ImageView
                 android:id="@+id/imageView"
-                android:layout_width="400dp"
+                android:layout_width="match_parent"
                 android:layout_height="200dp"
-                android:layout_marginBottom="16dp"
+                android:layout_marginBottom="8dp"
+                android:scaleType="centerCrop"
                 app:srcCompat="@drawable/juzizhou" />
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:layout_marginBottom="0dp"
                 app:cardBackgroundColor="#F0FFFFFF"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="12dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="8dp"
                 app:strokeColor="#60FFFFFF"
                 app:strokeWidth="1dp">
 
@@ -166,22 +203,22 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="22dp">
+                    android:padding="14dp">
 
                     <!-- 公司Logo和名称 -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
+                        android:layout_marginBottom="12dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
                         <com.google.android.material.card.MaterialCardView
-                            android:layout_width="58dp"
-                            android:layout_height="58dp"
+                            android:layout_width="50dp"
+                            android:layout_height="50dp"
                             app:cardBackgroundColor="@color/modern_purple_400"
-                            app:cardCornerRadius="14dp"
-                            app:cardElevation="4dp"
+                            app:cardCornerRadius="12dp"
+                            app:cardElevation="3dp"
                             app:strokeWidth="0dp">
 
                             <ImageView
@@ -196,27 +233,27 @@
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="14dp"
+                            android:layout_marginStart="12dp"
                             android:layout_weight="1"
                             android:orientation="vertical">
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginBottom="5dp"
-                                android:lineSpacingMultiplier="1.3"
+                                android:layout_marginBottom="4dp"
+                                android:lineSpacingMultiplier="1.2"
                                 android:text="长沙市全通导航科技有限公司"
                                 android:textColor="@color/primary_dark"
-                                android:textSize="15sp"
+                                android:textSize="14sp"
                                 android:textStyle="bold" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginBottom="3dp"
+                                android:layout_marginBottom="2dp"
                                 android:text="📞 何博士 13135685125"
                                 android:textColor="@color/app_text_secondary"
-                                android:textSize="12sp"
+                                android:textSize="11sp"
                                 android:textStyle="bold" />
 
                             <TextView
@@ -224,7 +261,7 @@
                                 android:layout_height="wrap_content"
                                 android:text="📧 458689834@qq.com"
                                 android:textColor="@color/app_text_secondary"
-                                android:textSize="12sp"
+                                android:textSize="11sp"
                                 android:textStyle="bold" />
 
                         </LinearLayout>
@@ -243,49 +280,56 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_columnWeight="1"
-                            android:layout_margin="4dp"
+                            android:layout_margin="3dp"
                             android:background="@drawable/card_glass_blue"
                             android:gravity="center"
-
-                            android:text="🛰️ 蓝牙-北斗-惯导"
+                            android:paddingTop="6dp"
+                            android:paddingBottom="6dp"
+                            android:text=" 🛰️ 蓝牙-北斗-惯导"
                             android:textColor="@color/modern_blue_500"
-                            android:textSize="11sp"
+                            android:textSize="10sp"
                             android:textStyle="bold" />
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_columnWeight="1"
-                            android:layout_margin="4dp"
+                            android:layout_margin="3dp"
                             android:background="@drawable/card_glass_blue"
                             android:gravity="center"
-                            android:text="🗺️ 矢量地图 &amp; BIM"
+                            android:paddingTop="6dp"
+                            android:paddingBottom="6dp"
+                            android:text=" 🗺️ 矢量地图 &amp; BIM"
                             android:textColor="@color/modern_blue_500"
-                            android:textSize="11sp"
+                            android:textSize="10sp"
                             android:textStyle="bold" />
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_columnWeight="1"
-                            android:layout_margin="4dp"
+                            android:layout_margin="3dp"
                             android:background="@drawable/card_glass_blue"
                             android:gravity="center"
+                            android:paddingTop="6dp"
+                            android:paddingBottom="6dp"
                             android:text="📡 RTK卫星定位"
                             android:textColor="@color/modern_blue_500"
-                            android:textSize="11sp"
+                            android:textSize="10sp"
                             android:textStyle="bold" />
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_columnWeight="1"
-                            android:layout_margin="4dp"
+                            android:layout_margin="3dp"
                             android:background="@drawable/card_glass_blue"
                             android:gravity="center"
+                            android:paddingTop="6dp"
+                            android:paddingBottom="6dp"
                             android:text="💻 App/Web开发"
                             android:textColor="@color/modern_blue_500"
-                            android:textSize="11sp"
+                            android:textSize="10sp"
                             android:textStyle="bold" />
                     </GridLayout>
 
@@ -293,23 +337,25 @@
 
             </com.google.android.material.card.MaterialCardView>
 
-
-
         </LinearLayout>
 
+        <!-- 版权信息 - 始终位于底部 -->
         <TextView
             android:id="@+id/tv_bottom"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@android:color/transparent"
-            android:gravity="bottom|center"
+            android:gravity="center"
+            android:paddingTop="10dp"
+            android:paddingBottom="6dp"
             android:shadowColor="#40000000"
             android:shadowDx="0"
             android:shadowDy="1"
             android:shadowRadius="4"
             android:text="© 2025 长沙市全通导航科技有限公司. All Rights Reserved."
             android:textColor="#E6FFFFFF"
-            android:textSize="11sp" />
+            android:textSize="10sp"
+            android:letterSpacing="0.02" />
     </LinearLayout>
 
 

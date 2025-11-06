@@ -26,6 +26,12 @@ android {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
+    
+    packaging {
+        resources {
+            excludes += ['META-INF/androidx.cardview_cardview.version']
+        }
+    }
 }
 
 dependencies {
@@ -34,7 +40,7 @@ dependencies {
     implementation libs.material
     implementation libs.activity
     implementation libs.constraintlayout
-    implementation libs.cardview.v7
+    // 移除旧的 cardview-v7，使用 androidx 版本（已包含在 material 中）
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
