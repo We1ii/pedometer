@@ -170,6 +170,10 @@
     <color name="modern_pink_400">#EC4899</color>          <!-- 粉色 -->
     <color name="modern_pink_500">#DB2777</color>          <!-- 深粉 -->
 
+    <!-- 红色系 -->
+    <color name="modern_red_400">#F87171</color>           <!-- 淡红色 -->
+    <color name="modern_red_500">#EF4444</color>           <!-- 红色 -->
+
     <!-- 绿色系 -->
     <color name="modern_green_50">#ECFDF5</color>          <!-- 极浅绿 -->
     <color name="modern_green_300">#6EE7B7</color>         <!-- 中浅绿 -->

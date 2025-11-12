@@ -25,7 +25,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="10dp"
+                android:layout_marginBottom="12dp"
                 android:gravity="center"
                 android:shadowColor="#40000000"
                 android:shadowDx="0"
@@ -38,8 +38,9 @@
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
+                android:layout_height="0dp"
+                android:layout_weight="1.2"
+                android:layout_marginBottom="10dp"
                 app:cardBackgroundColor="#F7FFFFFF"
                 app:cardCornerRadius="18dp"
                 app:cardElevation="10dp"
@@ -48,7 +49,7 @@
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="match_parent"
                     android:orientation="vertical"
                     android:padding="16dp">
 
@@ -78,7 +79,8 @@
                     <!-- 步数显示区域 - 美化版 -->
                     <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
                         android:background="@drawable/input_modern"
                         android:gravity="center"
                         android:orientation="vertical"
@@ -91,11 +93,11 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginBottom="4dp"
+                            android:layout_marginBottom="8dp"
                             android:letterSpacing="0.05"
                             android:text="您当前行走了"
                             android:textColor="@color/app_text_secondary"
-                            android:textSize="12sp" />
+                            android:textSize="14sp" />
 
                         <!-- 步数显示 - 突出显示 -->
                         <LinearLayout
@@ -111,32 +113,32 @@
                                 android:fontFamily="sans-serif-light"
                                 android:shadowColor="#40000000"
                                 android:shadowDx="0"
-                                android:shadowDy="2"
-                                android:shadowRadius="5"
+                                android:shadowDy="3"
+                                android:shadowRadius="8"
                                 android:text="0"
                                 android:textColor="@color/modern_blue_500"
-                                android:textSize="36sp"
+                                android:textSize="52sp"
                                 android:textStyle="bold" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_gravity="bottom"
-                                android:layout_marginStart="4dp"
-                                android:layout_marginBottom="4dp"
+                                android:layout_marginStart="6dp"
+                                android:layout_marginBottom="6dp"
                                 android:text="步"
                                 android:textColor="@color/app_text_primary"
-                                android:textSize="18sp"
+                                android:textSize="26sp"
                                 android:textStyle="bold" />
                         </LinearLayout>
 
                         <!-- 步行图标装饰 -->
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="👣"
-                            android:textSize="18sp" />
+<!--                        <TextView-->
+<!--                            android:layout_width="wrap_content"-->
+<!--                            android:layout_height="wrap_content"-->
+<!--                            android:layout_marginTop="6dp"-->
+<!--                            android:text="👣"-->
+<!--                            android:textSize="26sp" />-->
                     </LinearLayout>
 
                     <!-- 按钮行 -->
@@ -148,7 +150,7 @@
                         android:weightSum="2">
 
                         <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_select_sensors_main"
+                            android:id="@+id/btn_select_sensors"
                             style="@style/Widget.MaterialComponents.Button"
                             android:layout_width="0dp"
                             android:layout_height="58dp"
@@ -184,8 +186,9 @@
             <ImageView
                 android:id="@+id/imageView"
                 android:layout_width="match_parent"
-                android:layout_height="200dp"
-                android:layout_marginBottom="8dp"
+                android:layout_height="0dp"
+                android:layout_weight="1.3"
+                android:layout_marginBottom="10dp"
                 android:scaleType="centerCrop"
                 app:srcCompat="@drawable/juzizhou" />
 
@@ -346,8 +349,8 @@
             android:layout_height="wrap_content"
             android:background="@android:color/transparent"
             android:gravity="center"
-            android:paddingTop="10dp"
-            android:paddingBottom="6dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="8dp"
             android:shadowColor="#40000000"
             android:shadowDx="0"
             android:shadowDy="1"
