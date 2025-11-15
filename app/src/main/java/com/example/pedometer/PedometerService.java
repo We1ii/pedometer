@@ -14,6 +14,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
+import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -27,13 +28,16 @@ import java.util.List;
  */
 public class PedometerService extends Service implements SensorEventListener {
 
+    private static final String TAG = "PedometerService";
     private static final int NOTIFICATION_ID = 1;
     private static final String NOTIFICATION_CHANNEL_ID = "PedometerChannel";
 
     private SensorManager sensorManager;
     private Sensor accelerometer;
     private List<Double> accData = new ArrayList<>();
+    private List<DataExporter.AccelerometerData> rawAccData = new ArrayList<>();
     private int totalSteps = 0;
+    private long sessionStartTime = 0;
 
     private Handler handler = new Handler();
     private PowerManager.WakeLock wakeLock;
@@ -52,14 +56,34 @@ public class PedometerService extends Service implements SensorEventListener {
     @Override
     public void onCreate() {
         super.onCreate();
-        sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
-        if (powerManager != null) {
-            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Pedometer::PedometerService");
-            wakeLock.setReferenceCounted(false);
+        try {
+            Log.i(TAG, "PedometerService onCreate 开始");
+            
+            sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+            if (sensorManager == null) {
+                Log.e(TAG, "无法获取传感器管理器");
+                return;
+            }
+            
+            accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+            if (accelerometer == null) {
+                Log.e(TAG, "设备不支持加速度传感器");
+                return;
+            }
+            Log.i(TAG, "加速度传感器初始化成功");
+            
+            PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+            if (powerManager != null) {
+                wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Pedometer::PedometerService");
+                wakeLock.setReferenceCounted(false);
+                Log.i(TAG, "唤醒锁初始化成功");
+            }
+            
+            createNotificationChannel();
+            Log.i(TAG, "PedometerService onCreate 完成");
+        } catch (Exception e) {
+            Log.e(TAG, "PedometerService onCreate 失败", e);
         }
-        createNotificationChannel();
     }
 
     /**
@@ -73,13 +97,44 @@ public class PedometerService extends Service implements SensorEventListener {
      */
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        startForeground(NOTIFICATION_ID, createNotification());
-        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-        handler.post(runnable);
-        if (wakeLock != null && !wakeLock.isHeld()) {
-            wakeLock.acquire();
+        try {
+            Log.i(TAG, "PedometerService onStartCommand 开始");
+            
+            sessionStartTime = System.currentTimeMillis();
+            totalSteps = 0;
+            accData.clear();
+            rawAccData.clear();
+            
+            Log.i(TAG, "准备启动前台服务");
+            startForeground(NOTIFICATION_ID, createNotification());
+            
+            // 检查传感器是否可用
+            if (accelerometer == null) {
+                Log.e(TAG, "加速度传感器不可用");
+                return START_NOT_STICKY;
+            }
+            
+            Log.i(TAG, "注册传感器监听器");
+            boolean registered = sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME);
+            if (!registered) {
+                Log.e(TAG, "传感器注册失败");
+                return START_NOT_STICKY;
+            }
+            
+            Log.i(TAG, "启动定时任务");
+            handler.post(runnable);
+            
+            Log.i(TAG, "获取唤醒锁");
+            if (wakeLock != null && !wakeLock.isHeld()) {
+                wakeLock.acquire();
+            }
+            
+            Log.i(TAG, "PedometerService 启动成功");
+            return START_STICKY;
+        } catch (Exception e) {
+            Log.e(TAG, "PedometerService 启动失败", e);
+            return START_NOT_STICKY;
         }
-        return START_STICKY;
     }
 
     /**
@@ -89,11 +144,21 @@ public class PedometerService extends Service implements SensorEventListener {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        
+        Log.i(TAG, "PedometerService onDestroy 开始，当前数据条数: " + rawAccData.size());
+        
+        // 导出数据
+        exportSessionData();
+        
+        Log.i(TAG, "取消传感器监听器");
         sensorManager.unregisterListener(this);
         handler.removeCallbacks(runnable);
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
+            Log.i(TAG, "释放唤醒锁");
         }
+        
+        Log.i(TAG, "PedometerService onDestroy 完成");
     }
 
     /**
@@ -120,6 +185,15 @@ public class PedometerService extends Service implements SensorEventListener {
             float x = event.values[0];
             float y = event.values[1];
             float z = event.values[2];
+            long timestamp = System.currentTimeMillis();
+
+            // 存储原始加速度数据
+            rawAccData.add(new DataExporter.AccelerometerData(x, y, z, timestamp));
+
+            // 每收集50条数据打印一次日志
+            if (rawAccData.size() % 50 == 0) {
+                Log.i(TAG, "已收集加速度数据: " + rawAccData.size() + " 条");
+            }
 
             // 计算加速度幅值并减去重力加速度得到实际运动加速度
             double magnitude = Math.sqrt(x * x + y * y + z * z) - 9.81;
@@ -164,14 +238,25 @@ public class PedometerService extends Service implements SensorEventListener {
      * 创建通知渠道（仅适用于Android O及以上版本）
      */
     private void createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(
-                    NOTIFICATION_CHANNEL_ID,
-                    "Pedometer Service Channel",
-                    NotificationManager.IMPORTANCE_DEFAULT
-            );
-            NotificationManager manager = getSystemService(NotificationManager.class);
-            manager.createNotificationChannel(channel);
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                Log.i(TAG, "创建通知渠道");
+                NotificationChannel channel = new NotificationChannel(
+                        NOTIFICATION_CHANNEL_ID,
+                        "Pedometer Service Channel",
+                        NotificationManager.IMPORTANCE_DEFAULT
+                );
+                channel.setDescription("计步器服务通知");
+                NotificationManager manager = getSystemService(NotificationManager.class);
+                if (manager != null) {
+                    manager.createNotificationChannel(channel);
+                    Log.i(TAG, "通知渠道创建成功");
+                } else {
+                    Log.e(TAG, "无法获取通知管理器");
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "创建通知渠道失败", e);
         }
     }
 
@@ -181,15 +266,31 @@ public class PedometerService extends Service implements SensorEventListener {
      * @return 构建好的通知对象
      */
     private Notification createNotification() {
-        Intent notificationIntent = new Intent(this, MainActivity.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE);
+        try {
+            Log.i(TAG, "创建前台通知");
+            Intent notificationIntent = new Intent(this, MainActivity.class);
+            PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE);
 
-        return new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
-                .setContentTitle("计步器正在运行")
-                .setContentText("步数: " + totalSteps)
-                .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentIntent(pendingIntent)
-                .build();
+            Notification notification = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+                    .setContentTitle("计步器正在运行")
+                    .setContentText("步数: " + totalSteps)
+                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setContentIntent(pendingIntent)
+                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                    .setOngoing(true)
+                    .build();
+            
+            Log.i(TAG, "前台通知创建成功");
+            return notification;
+        } catch (Exception e) {
+            Log.e(TAG, "创建前台通知失败", e);
+            // 返回一个最简单的通知
+            return new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+                    .setContentTitle("计步器")
+                    .setContentText("正在运行")
+                    .setSmallIcon(android.R.drawable.ic_dialog_info)
+                    .build();
+        }
     }
 
     /**
@@ -217,5 +318,46 @@ public class PedometerService extends Service implements SensorEventListener {
         intent.putExtra("totalSteps", steps);
         intent.setPackage(getPackageName());
         sendBroadcast(intent);
+    }
+    
+    /**
+     * 导出会话数据到Excel文件
+     */
+    private void exportSessionData() {
+        Log.i(TAG, "开始导出会话数据，原始数据条数: " + rawAccData.size());
+        
+        if (rawAccData.isEmpty()) {
+            Log.w(TAG, "没有数据需要导出");
+            return;
+        }
+        
+        try {
+            long endTime = System.currentTimeMillis();
+            int samplingFrequency = 50; // 假设采样频率为50Hz
+            
+            Log.i(TAG, "会话时长: " + (endTime - sessionStartTime) + "ms, 总步数: " + totalSteps);
+            
+            String filePath = DataExporter.exportToExcel(
+                this, 
+                rawAccData, 
+                sessionStartTime, 
+                endTime, 
+                samplingFrequency, 
+                totalSteps
+            );
+            
+            if (filePath != null) {
+                Log.i(TAG, "数据导出成功: " + filePath);
+                // 广播导出完成事件
+                Intent intent = new Intent("pedometer-export-complete");
+                intent.putExtra("filePath", filePath);
+                intent.setPackage(getPackageName());
+                sendBroadcast(intent);
+            } else {
+                Log.e(TAG, "数据导出失败");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "导出数据时发生异常", e);
+        }
     }
 }
