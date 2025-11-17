@@ -235,10 +235,10 @@ public class DataExporter {
     
     /**
      * 生成文件名
-     * 格式：stepcount_2025.11.13_19:04.xls
+     * 格式：stepcount_2025.11.13_19:04:35.xls
      */
     private static String generateFileName() {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy.MM.dd_HH:mm", Locale.getDefault());
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy.MM.dd_HH:mm:ss", Locale.getDefault());
         String timestamp = dateFormat.format(new Date());
         return "stepcount_" + timestamp + ".xls";
     }

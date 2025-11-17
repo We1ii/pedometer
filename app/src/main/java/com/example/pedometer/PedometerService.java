@@ -38,7 +38,6 @@ public class PedometerService extends Service implements SensorEventListener {
     private List<DataExporter.AccelerometerData> rawAccData = new ArrayList<>();
     private int totalSteps = 0;
     private long sessionStartTime = 0;
-    private int lastFilteredDataSize = 0;  // 记录上次滤波后的数据大小
 
     private Handler handler = new Handler();
     private PowerManager.WakeLock wakeLock;
@@ -113,7 +112,6 @@ public class PedometerService extends Service implements SensorEventListener {
             totalSteps = 0;
             accData.clear();
             rawAccData.clear();
-            lastFilteredDataSize = 0;
             
             Log.i(TAG, "准备启动前台服务");
             startForeground(NOTIFICATION_ID, createNotification());
@@ -155,7 +153,13 @@ public class PedometerService extends Service implements SensorEventListener {
     public void onDestroy() {
         super.onDestroy();
         
-        Log.i(TAG, "PedometerService onDestroy 开始，当前数据条数: " + rawAccData.size());
+        Log.i(TAG, "PedometerService onDestroy 开始");
+        Log.i(TAG, "原始加速度数据: " + rawAccData.size() + " 条");
+        Log.i(TAG, "处理后的G值数据: " + accData.size() + " 条");
+        
+        // 停止前最后一次计算步数，确保显示最终准确结果
+        Log.i(TAG, "执行最后一次步数计算");
+        processStepData();
         
         // 导出数据
         exportSessionData();
@@ -168,7 +172,7 @@ public class PedometerService extends Service implements SensorEventListener {
             Log.i(TAG, "释放唤醒锁");
         }
         
-        Log.i(TAG, "PedometerService onDestroy 完成");
+        Log.i(TAG, "PedometerService onDestroy 完成，最终步数: " + totalSteps);
     }
 
     /**
@@ -224,8 +228,7 @@ public class PedometerService extends Service implements SensorEventListener {
 
     /**
      * 处理步数数据
-     * 对收集到的加速度数据进行滤波和步数检测，并更新总步数和通知
-     * 使用累积数据而非分段处理，避免峰值检测中断
+     * 每次对所有累积数据重新计算总步数（与MATLAB算法完全一致）
      */
     private void processStepData() {
         if (accData.isEmpty()) {
@@ -242,58 +245,25 @@ public class PedometerService extends Service implements SensorEventListener {
             return;
         }
 
-        // 使用所有累积的数据进行处理
+        // 使用所有累积的数据进行处理（与MATLAB相同）
         List<Double> dataToProcess = new ArrayList<>(accData);
 
         // 对数据进行均值滤波处理
         List<Double> filteredData = StepCounter.filterMean(dataToProcess, 10, 6);
-        int currentFilteredSize = filteredData.size();
-        Log.i(TAG, "processStepData: 原始数据 " + dataToProcess.size() + " 条，滤波后 " + currentFilteredSize + " 条");
+        Log.i(TAG, "processStepData: 原始数据 " + dataToProcess.size() + " 条，滤波后 " + filteredData.size() + " 条");
         
-        // 检测步数，获取峰值位置（在滤波后数据中的索引）
-        List<Integer> peakIndices = StepCounter.numStepsDetectionCwhe2(filteredData);
-        
-        // 只计算新增区域的峰值（索引 >= lastFilteredDataSize的峰值）
-        // 注意：由于我们保留了所有累积数据，峰值检测是在整个数据集上进行的
-        // 所以只需统计索引大于等于上次数据大小的峰值即可
-        int newSteps = 0;
-        List<Integer> newPeakIndices = new ArrayList<>();
-        for (int peakIdx : peakIndices) {
-            if (peakIdx >= lastFilteredDataSize) {
-                newSteps++;
-                newPeakIndices.add(peakIdx);
-            }
-        }
-        
-        totalSteps += newSteps;
-        
-        // 更新已处理的数据大小
-        int previousSize = lastFilteredDataSize;
-        lastFilteredDataSize = currentFilteredSize;
+        // 检测步数（每次重新计算总步数）
+        int previousSteps = totalSteps;
+        totalSteps = StepCounter.numStepsDetection(filteredData);
 
-        Log.i(TAG, "processStepData: 检测到峰值 " + peakIndices.size() + " 个，新增步数 " + newSteps + "，总步数 " + totalSteps);
-        Log.i(TAG, "processStepData: 滤波后数据大小 " + previousSize + " -> " + currentFilteredSize);
-        if (!newPeakIndices.isEmpty()) {
-            Log.i(TAG, "processStepData: 新增峰值位置 " + newPeakIndices.toString());
-        }
+        Log.i(TAG, "========================================");
+        Log.i(TAG, "processStepData: 原始数据 " + dataToProcess.size() + " 条");
+        Log.i(TAG, "processStepData: 滤波后 " + filteredData.size() + " 条");
+        Log.i(TAG, "processStepData: 步数 " + previousSteps + " -> " + totalSteps);
+        Log.i(TAG, "========================================");
 
         updateNotification(totalSteps);
         broadcastStepUpdate(totalSteps);
-        
-        // 当原始数据量过大时，清理旧数据，保留最近的数据
-        // 保留足够的数据以维持滤波窗口和重叠区域
-        if (accData.size() > 1000) {
-            int keepSize = 500;
-            List<Double> recentData = new ArrayList<>(accData.subList(accData.size() - keepSize, accData.size()));
-            accData.clear();
-            accData.addAll(recentData);
-            
-            // 重新计算滤波后的大小
-            int newFilteredSize = keepSize - 15; // 滤波后大小估算（10+6-1）
-            lastFilteredDataSize = newFilteredSize;
-            
-            Log.i(TAG, "processStepData: 清理旧数据，保留最近" + keepSize + "条，重置滤波后大小为 " + newFilteredSize);
-        }
     }
 
     /**
