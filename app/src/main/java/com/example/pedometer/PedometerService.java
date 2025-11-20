@@ -157,16 +157,21 @@ public class PedometerService extends Service implements SensorEventListener {
         Log.i(TAG, "原始加速度数据: " + rawAccData.size() + " 条");
         Log.i(TAG, "处理后的G值数据: " + accData.size() + " 条");
         
-        // 停止前最后一次计算步数，确保显示最终准确结果
-        Log.i(TAG, "执行最后一次步数计算");
-        processStepData();
+        // 先停止定时任务和传感器，防止在最后处理时继续收集数据
+        Log.i(TAG, "停止定时任务和传感器监听");
+        handler.removeCallbacks(runnable);
+        sensorManager.unregisterListener(this);
         
-        // 导出数据
+        // 停止前最后一次计算步数，确保与MATLAB算法结果一致
+        // 这一步非常关键：在最后3秒或不满3秒时点击停止，必须再次处理所有累积的数据
+        Log.i(TAG, "执行最后一次步数计算（处理所有累积数据）");
+        int stepsBeforeFinal = totalSteps;
+        processStepData();
+        Log.i(TAG, "最后一次计算完成，步数从 " + stepsBeforeFinal + " 更新到 " + totalSteps);
+        
+        // 导出数据（使用最终计算的步数）
         exportSessionData();
         
-        Log.i(TAG, "取消传感器监听器");
-        sensorManager.unregisterListener(this);
-        handler.removeCallbacks(runnable);
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
             Log.i(TAG, "释放唤醒锁");
