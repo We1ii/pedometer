@@ -15,8 +15,10 @@
 
 package com.example.pedometer;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -65,16 +67,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private boolean isCounting = false;
 
     private long lastStepTime = 0;
-    private static final long MIN_STEP_INTERVAL = 300;
+    private static final long MIN_STEP_INTERVAL = 250;
     private double[] recentAccelerations;
     private int recentAccIndex = 0;
-    private static final int RECENT_ACC_SIZE = 20;
+    private static final int RECENT_ACC_SIZE = 40;
 
     //三轴数据导出
     private List<DataExporter.AccelerometerData> rawDataList;
     private long sessionStartTime;
     private long sessionEndTime;
     private static final int SAMPLING_FREQUENCY = 50;
+
+    // 屏幕状态广播接收器
+    private BroadcastReceiver screenReceiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -92,6 +97,40 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         initSensors();
         initStepDetector();
         setupButtons();
+        initScreenReceiver();  // 初始化屏幕状态监听
+    }
+
+    @Override
+    public void onConfigurationChanged(android.content.res.Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        // 处理配置变更（如屏幕旋转），但不重启Activity
+        // 由于设置了android:configChanges，这里不会被调用重建
+        // 计步状态会保持不变
+    }
+
+    // 初始化屏幕状态广播接收器
+    private void initScreenReceiver() {
+        screenReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (Intent.ACTION_SCREEN_ON.equals(intent.getAction())) {
+                    // 屏幕点亮
+                    if (isCounting) {
+                        // 重新注册传感器
+                        sensorManager.registerListener(MainActivity.this,
+                                accelerometerSensor, SensorManager.SENSOR_DELAY_GAME);
+
+                        // 重新获取WakeLock
+                        if (wakeLock != null && !wakeLock.isHeld()) {
+                            wakeLock.acquire(10 * 60 * 1000L);
+                        }
+                    }
+                } else if (Intent.ACTION_SCREEN_OFF.equals(intent.getAction())) {
+                    // 屏幕熄灭 - 不做任何操作，保持传感器运行
+                    // WakeLock会保证CPU继续运行
+                }
+            }
+        };
     }
 
     //初始化界面
@@ -186,6 +225,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         sensorManager.registerListener(this, accelerometerSensor,
                 SensorManager.SENSOR_DELAY_GAME);
 
+        // 注册屏幕状态广播接收器
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_SCREEN_ON);
+        filter.addAction(Intent.ACTION_SCREEN_OFF);
+        registerReceiver(screenReceiver, filter);
+
         //更新UI: 按钮变红，显示"正在计步中..."
         btnStartStop.setText("停止计步");
         btnStartStop.setBackgroundTintList(getColorStateList(android.R.color.holo_red_light));
@@ -211,14 +256,25 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private void stopStepCounting() {
         isCounting = false;
+
+        // 注销传感器监听
         sensorManager.unregisterListener(this);
 
+        // 注销屏幕状态广播接收器
+        if (screenReceiver != null) {
+            try {
+                unregisterReceiver(screenReceiver);
+            } catch (IllegalArgumentException e) {
+                // 接收器未注册，忽略
+            }
+        }
+
+        // 释放WakeLock
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
         }
 
         btnStartStop.setText("开始计步");
-//      btnStartStop.setBackgroundTintList(getColorStateList(com.google.android.material.R.color.design_default_color_primary));
         btnStartStop.setBackgroundTintList(getColorStateList(R.color.app_primary_blue));
         statusText.setText(String.format(Locale.getDefault(),
                 "已停止，总计：%d 步", totalSteps));
@@ -301,35 +357,38 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 //            bufferIndex = OVERLAP_SIZE;
 //        }
 
-        //当缓冲区满时 (bufferIndex >= 100)，触发计步算法
+        //并且需要当缓冲区满时 (bufferIndex >= 100)，触发计步算法
         if (bufferIndex >= BUFFER_SIZE) {
             //优化后 检测出来的步数（每一轮检测出来的步数）
-            int newSteps = stepDetector.detectSteps(accelerationBuffer);
+            int newSteps = stepDetector.detectSteps(accelerationBuffer, OVERLAP_SIZE);
 
             if (newSteps > 0) {
-                // 限制单个窗口最多检测到的步数（正常情况下2秒内不会超过4步）
-                int cappedSteps = Math.min(newSteps, 4);
+                totalSteps += newSteps;
+                lastStepTime = System.currentTimeMillis();
 
-                long currentTime = System.currentTimeMillis();
-                //时间防抖检查 (MIN_STEP_INTERVAL = 300ms) 防止同一个步态被重复计数
-                //      第一次计步时                  距离上次计步已经超过250ms时
-                if (lastStepTime == 0 || (currentTime - lastStepTime) >= MIN_STEP_INTERVAL) {
-                    //totalSteps += newSteps;
-                    totalSteps += cappedSteps;  // 使用限制后的步数
-                    lastStepTime = currentTime;
+                // 保存当前总步数用于UI更新
+                final int currentTotalSteps = totalSteps;
+                final int detectedSteps = Math.min(newSteps, 6);
+                final String positionStr = PositionDetector.getPositionDescription(
+                        stepDetector.getCurrentPosition());
 
-                    runOnUiThread(() -> {
-                        stepCountText.setText(String.format(Locale.getDefault(),
-                                "%d", totalSteps));
-                        statusText.setText(String.format(Locale.getDefault(),
-                                "正在计步... 总计：%d 步（本次检测：%d 步）", totalSteps, newSteps));
-                    });
-                }
+                runOnUiThread(() -> {
+                    stepCountText.setText(String.format(Locale.getDefault(),
+                            "%d", currentTotalSteps));
+                    statusText.setText(String.format(Locale.getDefault(),
+                            "[%s] 正在计步... 总计：%d 步（本次检测：%d 步）",
+                            positionStr, currentTotalSteps, detectedSteps));
+                });
+
             } else {
+                final String positionStr = PositionDetector.getPositionDescription(
+                        stepDetector.getCurrentPosition());
+                final int currentTotalSteps = totalSteps;
+
                 //无新步数时的UI更新  即使没有检测到新步数，也更新状态提示
                 runOnUiThread(() -> {
                     statusText.setText(String.format(Locale.getDefault(),
-                            "正在计步... 总计：%d 步", totalSteps));
+                            "[%s] 正在计步... 总计：%d 步", positionStr, currentTotalSteps));
                 });
             }
 
@@ -342,7 +401,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             bufferIndex = OVERLAP_SIZE;
         }
     }
-
 
     private void openDataFolder() {
         File dataDir = DataExporter.getDataDirectory(this);
@@ -416,6 +474,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }).start();
     }
 
+
+
    // 计算方差，如果方差 < 0.05，认为手机静止 返回true 静止时只收集数据但不进行步数检测
     private boolean isStationary() {
         double sum = 0;
@@ -441,30 +501,70 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void onResume() {
         super.onResume();
         // 不在这里自动注册传感器，由用户点击按钮控制
+        // 如果正在计步，重新注册传感器监听（息屏后亮屏时恢复）
+        if (isCounting && accelerometerSensor != null) {
+            sensorManager.registerListener(this, accelerometerSensor,
+                    SensorManager.SENSOR_DELAY_GAME);
+
+            // 重新获取WakeLock（如果被释放了）
+            if (wakeLock != null && !wakeLock.isHeld()) {
+                wakeLock.acquire(10 * 60 * 1000L);
+            }
+        }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         // 如果正在计步，暂停传感器
-        if (isCounting) {
-            sensorManager.unregisterListener(this);
-        }
+//        if (isCounting) {
+//            sensorManager.unregisterListener(this);
+//        }
+        // 注意：不要在这里注销传感器，否则息屏会停止计步
+        // 只有在用户主动停止计步时才注销
     }
 
+//    @Override
+//    protected void onDestroy() {
+//        super.onDestroy();
+//        if (stepDetector != null) {
+//            stepDetector.reset();
+//        }
+//
+//        if (wakeLock != null && wakeLock.isHeld()) {
+//            wakeLock.release();
+//        }
+//        // 确保取消注册
+//        if (isCounting) {
+//            sensorManager.unregisterListener(this);
+//        }
+//    }
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
+        // 注销传感器
+        if (isCounting) {
+            sensorManager.unregisterListener(this);
+        }
+
+        // 注销广播接收器
+        if (screenReceiver != null) {
+            try {
+                unregisterReceiver(screenReceiver);
+            } catch (IllegalArgumentException e) {
+                // 接收器未注册，忽略
+            }
+        }
+
+        // 重置计步器
         if (stepDetector != null) {
             stepDetector.reset();
         }
 
+        // 释放WakeLock
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
-        }
-        // 确保取消注册
-        if (isCounting) {
-            sensorManager.unregisterListener(this);
         }
     }
 }
