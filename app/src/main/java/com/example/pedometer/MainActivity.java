@@ -61,8 +61,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private double[] accelerationBuffer;
     private int bufferIndex;
-    private static final int BUFFER_SIZE = 100;
-    private static final int OVERLAP_SIZE = 30;
+    private static final int BUFFER_SIZE_DEFAULT = 100;
+    private static final int OVERLAP_SIZE_DEFAULT = 30;
+    private int currentBufferSize;
+    private int currentOverlapSize;
     private int totalSteps;
     private boolean isCounting = false;
 
@@ -77,6 +79,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private long sessionStartTime;
     private long sessionEndTime;
     private static final int SAMPLING_FREQUENCY = 50;
+
+    // 当前检测到的姿态（用于导出）
+    private String currentPositionStr = "未知";
 
     // 屏幕状态广播接收器
     private BroadcastReceiver screenReceiver;
@@ -164,8 +169,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     //初始化计步器
     private void initStepDetector() {
         stepDetector = new StepDetector();
-        //创建滑动窗口
-        accelerationBuffer = new double[BUFFER_SIZE];
+        //初始化动态窗口大小
+        currentBufferSize = BUFFER_SIZE_DEFAULT;
+        currentOverlapSize = OVERLAP_SIZE_DEFAULT;
+        //创建滑动窗口（使用最大可能的大小）
+        accelerationBuffer = new double[150];  // 最大窗口=150（口袋模式）
         bufferIndex = 0;
         //步数计数器
         totalSteps = 0;
@@ -239,7 +247,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         //处理初始静止时 出现步数情况
         totalSteps = 0;
         bufferIndex = 0;
-        //清空 accelerationBuffer[]                             │
+        //重置动态窗口大小为默认值
+        currentBufferSize = BUFFER_SIZE_DEFAULT;
+        currentOverlapSize = OVERLAP_SIZE_DEFAULT;
+        //清空 accelerationBuffer[]
         //清空 recentAccelerations[]
         java.util.Arrays.fill(accelerationBuffer, 0);
         java.util.Arrays.fill(recentAccelerations, 0);
@@ -292,8 +303,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         //步骤1: 计算合加速度并去除重力
         float[] values = event.values;
 
+        // 创建数据点时带上当前姿态
         DataExporter.AccelerometerData dataPoint = new DataExporter.AccelerometerData(
-                values[0], values[1], values[2], System.currentTimeMillis()
+                values[0], values[1], values[2], System.currentTimeMillis(),
+                currentPositionStr
         );
         rawDataList.add(dataPoint);
 
@@ -303,9 +316,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         values[2] * values[2]
         );
 
-//        accelerationBuffer[bufferIndex] = magnitude - 9.81;
-//        bufferIndex++;
-
         double gravityRemoved = magnitude - 9.81;
 
         //步骤2: 更新静止检测窗口
@@ -314,14 +324,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         //步骤3: 判断是否静止 (isStationary())
         if (isStationary()) {
+            // 静止时更新姿态
+            currentPositionStr = "手持静止";
             //步骤4: 填充滑动窗口缓冲区
             accelerationBuffer[bufferIndex] = gravityRemoved;
             bufferIndex++;
 
-            if (bufferIndex >= BUFFER_SIZE) {
-                System.arraycopy(accelerationBuffer, BUFFER_SIZE - OVERLAP_SIZE,
-                        accelerationBuffer, 0, OVERLAP_SIZE);
-                bufferIndex = OVERLAP_SIZE;
+            if (bufferIndex >= currentBufferSize) {
+                // 静止模式：使用当前窗口大小复制重叠区域
+                System.arraycopy(accelerationBuffer, currentBufferSize - currentOverlapSize,
+                        accelerationBuffer, 0, currentOverlapSize);
+                bufferIndex = currentOverlapSize;
             }
             return;
         }
@@ -329,38 +342,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         accelerationBuffer[bufferIndex] = gravityRemoved;
         bufferIndex++;
 
-        //当缓冲区的数据个数大于拟定值时 触发计步算法
-//        if (bufferIndex >= BUFFER_SIZE) {
-//            int newSteps = stepDetector.detectSteps(accelerationBuffer);
-//
-//            if (newSteps > 0) {     // 只有检测到新步数才更新UI(上面和下面一起更新)
-//                totalSteps += newSteps;
-//
-//                runOnUiThread(() -> {
-//                    stepCountText.setText(String.format(Locale.getDefault(),
-//                            "%d", totalSteps));
-//                    statusText.setText(String.format(Locale.getDefault(),
-//                            "正在计步... 总计：%d 步（本次检测：%d 步）", totalSteps, newSteps));
-//                });
-//            } else {
-//                runOnUiThread(() -> {
-//                    statusText.setText(String.format(Locale.getDefault(),
-//                            "正在计步... 总计：%d 步", totalSteps));
-//                });
-//            }
-//
-////            bufferIndex = 0;
-////            java.util.Arrays.fill(accelerationBuffer, 0); //避免频繁创建对象，提高性能
-//            // 保留最后OVERLAP_SIZE个数据点到缓冲区开头，实现重叠窗口
-//            System.arraycopy(accelerationBuffer, BUFFER_SIZE - OVERLAP_SIZE,
-//                    accelerationBuffer, 0, OVERLAP_SIZE);
-//            bufferIndex = OVERLAP_SIZE;
-//        }
-
-        //并且需要当缓冲区满时 (bufferIndex >= 100)，触发计步算法
-        if (bufferIndex >= BUFFER_SIZE) {
+        //并且需要当缓冲区满时 (bufferIndex >= currentBufferSize)，触发计步算法
+        if (bufferIndex >= currentBufferSize) {
             //优化后 检测出来的步数（每一轮检测出来的步数）
-            int newSteps = stepDetector.detectSteps(accelerationBuffer, OVERLAP_SIZE);
+            int newSteps = stepDetector.detectSteps(accelerationBuffer, currentOverlapSize);
+
+            // 更新当前姿态（用于导出）
+            currentPositionStr = PositionDetector.getPositionDescription(
+                    stepDetector.getCurrentPosition());
 
             if (newSteps > 0) {
                 totalSteps += newSteps;
@@ -369,8 +358,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 // 保存当前总步数用于UI更新
                 final int currentTotalSteps = totalSteps;
                 final int detectedSteps = Math.min(newSteps, 6);
-                final String positionStr = PositionDetector.getPositionDescription(
-                        stepDetector.getCurrentPosition());
+                final String positionStr = currentPositionStr;
 
                 runOnUiThread(() -> {
                     stepCountText.setText(String.format(Locale.getDefault(),
@@ -381,24 +369,31 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 });
 
             } else {
-                final String positionStr = PositionDetector.getPositionDescription(
-                        stepDetector.getCurrentPosition());
                 final int currentTotalSteps = totalSteps;
 
                 //无新步数时的UI更新  即使没有检测到新步数，也更新状态提示
                 runOnUiThread(() -> {
                     statusText.setText(String.format(Locale.getDefault(),
-                            "[%s] 正在计步... 总计：%d 步", positionStr, currentTotalSteps));
+                            "[%s] 正在计步... 总计：%d 步", currentPositionStr, currentTotalSteps));
                 });
             }
 
-            //执行 arraycopy：
-            //  源位置: BUFFER_SIZE - OVERLAP_SIZE = 100 - 30 = 70
+            //先保存当前使用的窗口大小（用于arraycopy）
+            int oldBufferSize = currentBufferSize;
+            int oldOverlapSize = currentOverlapSize;
+
+            //根据本次检测到的位置，更新下次的窗口大小
+            PositionDetector.PhonePosition detectedPosition = stepDetector.getCurrentPosition();
+            currentBufferSize = getBufferSizeForPosition(detectedPosition);
+            currentOverlapSize = getOverlapSizeForBuffer(currentBufferSize);
+
+            //执行 arraycopy：使用旧的窗口大小来复制重叠区域
+            //  源位置: oldBufferSize - oldOverlapSize
             //  目标位置: 0
-            //  复制长度: OVERLAP_SIZE = 30
-            System.arraycopy(accelerationBuffer, BUFFER_SIZE - OVERLAP_SIZE,
-                    accelerationBuffer, 0, OVERLAP_SIZE);
-            bufferIndex = OVERLAP_SIZE;
+            //  复制长度: oldOverlapSize（使用旧的重叠大小）
+            System.arraycopy(accelerationBuffer, oldBufferSize - oldOverlapSize,
+                    accelerationBuffer, 0, oldOverlapSize);
+            bufferIndex = oldOverlapSize;
         }
     }
 
@@ -474,8 +469,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }).start();
     }
 
-
-
    // 计算方差，如果方差 < 0.05，认为手机静止 返回true 静止时只收集数据但不进行步数检测
     private boolean isStationary() {
         double sum = 0;
@@ -491,6 +484,28 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         double variance = varianceSum / RECENT_ACC_SIZE;
 
         return variance < 0.05;
+    }
+
+    /**
+     * 根据手机位置获取滑动窗口大小
+     * 口袋/包里信号弱，需要更大窗口来捕捉完整步态周期
+     */
+    private int getBufferSizeForPosition(PositionDetector.PhonePosition position) {
+        switch (position) {
+            case PANTS_POCKET:
+                return 150;  // 口袋：更大窗口，捕捉弱信号周期
+            case BAG:
+                return 130;  // 包里：稍大窗口
+            default:
+                return BUFFER_SIZE_DEFAULT;  // 其他：保持默认
+        }
+    }
+
+    /**
+     * 根据窗口大小计算重叠区域（保持约20%重叠）
+     */
+    private int getOverlapSizeForBuffer(int bufferSize) {
+        return Math.max(OVERLAP_SIZE_DEFAULT, bufferSize / 5);
     }
 
     @Override
@@ -517,28 +532,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void onPause() {
         super.onPause();
         // 如果正在计步，暂停传感器
-//        if (isCounting) {
-//            sensorManager.unregisterListener(this);
-//        }
-        // 注意：不要在这里注销传感器，否则息屏会停止计步
-        // 只有在用户主动停止计步时才注销
     }
 
-//    @Override
-//    protected void onDestroy() {
-//        super.onDestroy();
-//        if (stepDetector != null) {
-//            stepDetector.reset();
-//        }
-//
-//        if (wakeLock != null && wakeLock.isHeld()) {
-//            wakeLock.release();
-//        }
-//        // 确保取消注册
-//        if (isCounting) {
-//            sensorManager.unregisterListener(this);
-//        }
-//    }
     @Override
     protected void onDestroy() {
         super.onDestroy();

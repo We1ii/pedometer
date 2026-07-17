@@ -28,12 +28,14 @@ public class DataExporter {
     public static class AccelerometerData {
         public float x, y, z;
         public long timestamp;
-        
-        public AccelerometerData(float x, float y, float z, long timestamp) {
+        public String position;  // 检测到的姿态
+
+        public AccelerometerData(float x, float y, float z, long timestamp, String position) {
             this.x = x;
             this.y = y;
             this.z = z;
             this.timestamp = timestamp;
+            this.position = position;
         }
     }
     
@@ -110,19 +112,26 @@ public class DataExporter {
             // 写入数据行
             for (int i = 0; i < data.size(); i++) {
                 AccelerometerData item = data.get(i);
-                
-                // 前三列：x, y, z 轴数据（保留三位小数）
+
+                // 第一列：x 轴数据（保留三位小数）
                 tsvContent.append(decimalFormat.format(item.x)).append("\t");
+
+                // 第二列：y 轴数据
                 tsvContent.append(decimalFormat.format(item.y)).append("\t");
+
+                // 第三列：z 轴数据
                 tsvContent.append(decimalFormat.format(item.z)).append("\t");
-                
-                // 第四列：13位毫秒级时间戳
+
+                // 第四列：姿态
+                tsvContent.append(item.position != null ? item.position : "未知").append("\t");
+
+                // 第五列：13位毫秒级时间戳
                 tsvContent.append(item.timestamp).append("\t");
-                
-                // 第五列空着
+
+                // 第六列空着
                 tsvContent.append("\t");
-                
-                // 第六列：逐行存放信息
+
+                // 第七列：逐行存放信息
                 if (i == 0) {
                     tsvContent.append("Start Time：").append(dateFormat.format(new Date(startTime)));
                 } else if (i == 1) {
@@ -134,7 +143,7 @@ public class DataExporter {
                 } else if (i == 4) {
                     tsvContent.append("Step count:").append(stepCount);
                 }
-                
+
                 tsvContent.append("\n");
             }
             

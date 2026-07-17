@@ -17,15 +17,6 @@ public class PositionDetector {
 
     private static final String TAG = "PositionDetector";
 
-    // 位置判断阈值
-    private static final double SWING_VARIANCE_THRESHOLD = 2.5;  // 摆动方差阈值（手臂钟摆运动方差极大，从1.2提高到2.5，与胸前拉开距离）
-    private static final double SIGNAL_STRENGTH_WEAK = 0.2;      // 弱信号阈值（从0.3降到0.2）
-    private static final double SIGNAL_STRENGTH_MEDIUM = 0.6;    // 中等信号阈值
-    private static final double SIGNAL_STRENGTH_STRONG = 1.0;    // 强信号阈值
-    private static final double DC_COMPONENT_HIGH = 6.0;         // 高直流分量（垂直向下/向上）（从8.0降到6.0）
-    private static final double DC_COMPONENT_LOW = 5.0;          // 低直流分量（水平放置）（从3.0提高到5.0）
-
-
     /**
      * 识别手机位置
      * @param accelerationData 加速度数据窗口
@@ -43,7 +34,7 @@ public class PositionDetector {
         double dcComponent = calculateDCComponent(accelerationData);
 
         // 根据特征组合判断位置
-        return classifyPosition(signalStrength, variance, peakFrequency, dcComponent);
+        return classifyPosition(signalStrength, variance, peakFrequency, dcComponent, 0.0);
     }
 
     /**
@@ -76,6 +67,7 @@ public class PositionDetector {
 
     /**
      * 估算峰值频率（粗略估计步频）
+     * 注意：这个方法返回的是周期数，不是频率
      */
     private static double estimatePeakFrequency(double[] data) {
         int zeroCrossings = 0;
@@ -106,65 +98,49 @@ public class PositionDetector {
     private static PhonePosition classifyPosition(double signalStrength,
                                                   double variance,
                                                   double peakFrequency,
-                                                  double dcComponent) {
+                                                  double dcComponent,
+                                                  double regularity) {
 
         // 规则1: 极低方差 = 静止状态（手持静止或放在桌上）
         if (variance < 0.15) {
             return PhonePosition.HAND_HELD;
         }
 
-        // 规则2: 手持摆动 - 需要非常高的方差（手臂钟摆运动产生极大加速度）
-        // 手臂自然下垂摆动时，方差通常在 2.5-8.0+，远高于胸前走路晃动的 0.5-1.8
-        if (variance > SWING_VARIANCE_THRESHOLD &&
-                peakFrequency >= 3 && peakFrequency <= 12 &&
-                signalStrength > 0.8) {
-            return PhonePosition.HAND_SWING;
-        }
-
-        // 规则3: 胸前 - 中等方差（走路时身体上下晃动），信号中等，DC分量低（手机较水平）
-        // 扩大方差范围到 0.15-2.0，覆盖走路时胸前晃动（方差可达 0.8-1.5+）
-        if (signalStrength >= SIGNAL_STRENGTH_WEAK &&
-                signalStrength <= 1.5 &&
-                variance >= 0.15 && variance <= 2.0 &&
-                dcComponent < DC_COMPONENT_LOW) {
+        // 规则2: 胸前 - 中等方差（走路时身体上下晃动），信号中等
+        if (signalStrength >= 0.2 && signalStrength <= 1.5 &&
+                variance >= 0.15 && variance <= 2.0) {
             return PhonePosition.CHEST;
         }
 
-        // 规则4: 裤子口袋 - 弱信号 + 低方差 + 高DC分量（手机垂直放置）
-        if (signalStrength < SIGNAL_STRENGTH_MEDIUM &&
-                variance < 0.8 &&
-                dcComponent > DC_COMPONENT_HIGH) {
+        // 规则3: 裤子口袋/包里 - 行走时的共同特征
+        // 特征：中等偏强信号（>2.0）、高方差（>8.0）、低DC分量（<3.0）
+        // 关键区分：DC分量低（mean < 3.0）表示手机运动受限（口袋）
+        // 注意：必须在 HAND_SWING 之前检测，因为两者都有高方差
+        if (signalStrength > 2.0 && variance > 8.0 && dcComponent < 3.0) {
             return PhonePosition.PANTS_POCKET;
         }
 
-        // 规则5: 包里 - 强信号 + 高方差（不规律晃动）
-        if (signalStrength > SIGNAL_STRENGTH_STRONG &&
-                variance > 1.5) {
-            return PhonePosition.BAG;
+        // 规则4: 手持摆动 - 需要非常高的方差 + 高DC分量（手臂自由摆动）
+        // 手臂自然下垂摆动时，DC分量通常 > 4.0（重力影响明显）
+        if (variance > 2.5 && signalStrength > 0.8 && dcComponent >= 3.0) {
+            return PhonePosition.HAND_SWING;
         }
 
         // 默认分类：根据信号强度、方差和DC分量综合判断
         if (variance < 0.3) {
-            // 低方差：静止状态
             if (signalStrength < 0.3) {
                 return PhonePosition.HAND_HELD;
             } else {
                 return PhonePosition.CHEST;
             }
         } else if (variance > 2.0) {
-            // 高方差：运动状态，需要更仔细区分
-            if (signalStrength > 0.8 && peakFrequency >= 3) {
-                return PhonePosition.HAND_SWING;
-            } else {
-                return PhonePosition.BAG;
-            }
-        } else {
-            // 中等方差
-            if (dcComponent > DC_COMPONENT_HIGH) {
+            if (dcComponent < 3.0) {
                 return PhonePosition.PANTS_POCKET;
             } else {
-                return PhonePosition.CHEST;
+                return PhonePosition.HAND_SWING;
             }
+        } else {
+            return PhonePosition.CHEST;
         }
     }
 

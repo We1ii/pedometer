@@ -32,46 +32,6 @@ public class StepDetector {
         this.currentPosition = PositionDetector.PhonePosition.UNKNOWN;
     }
 
-//    public int detectSteps(double[] accelerationData) {
-//        if (accelerationData == null || accelerationData.length < 10) {
-//            return 0;
-//        }
-//
-//        //卡尔曼滤波降噪
-//        double[] filteredData = kalmanFilter.filter(accelerationData);
-//
-//        //峰值增强
-//        double[] enhancedData = enhancePeaks(filteredData);
-//
-//        stepIndices.clear();
-//
-//        // 计算阈值 (归一化处理，让峰值更明显)
-//        //  初始阈值设置为0.5
-//        thres = calculateThreshold(enhancedData);
-//        if (thres < 0.3) {
-//            thres = 0.3;
-//        }
-//
-//        //查找过零点 找到第一个从负到正的过零点和从正到负的过零点
-//        int[] zeroCrossings = findZeroCrossings(enhancedData);
-//        if (zeroCrossings[0] == -1 || zeroCrossings[1] == -1) {
-//            return 0;
-//        }
-//
-//        N = (int) Math.ceil(Math.abs(zeroCrossings[0] - zeroCrossings[1]) / 2.0);
-//        if (N < 1) {
-//            N = 1;
-//        }
-//
-//        //检测峰值
-//        detectPeaks(enhancedData);
-//
-//        //去除误检峰值
-//        removeFalsePeaks(enhancedData);
-//
-//        return stepIndices.size();
-//    }
-
     //计步算法核心流程 (StepDetector.detectSteps)
     //输入: double[100] accelerationData, int overlapSize (重叠窗口大小)
     //输出: int 检测到的步数
@@ -96,13 +56,6 @@ public class StepDetector {
         signalStrength = calculateSignalStrength(accelerationData);
         double noiseLevel = calculateNoiseLevel(accelerationData);
 
-        //在正式处理前先计算信号强度（RMS值）
-        //如果强度 < 0.15，直接返回0步，避免微弱噪声被误检
-//        signalStrength = calculateSignalStrength(accelerationData);
-//        if (signalStrength < 0.15) {
-//            return 0;
-//        }
-
         // 识别手机位置
         currentPosition = PositionDetector.detectPosition(accelerationData);
 
@@ -113,12 +66,6 @@ public class StepDetector {
         if (snr < snrThreshold) {  // 信噪比低于1.5认为是噪声
             return 0;
         }
-
-        //阶段1: 卡尔曼滤波降噪
-//        double[] filteredData = kalmanFilter.filter(accelerationData);
-
-        //阶段2: 峰值增强
-//        double[] enhancedData = enhancePeaks(filteredData);
 
         //阶段1: 卡尔曼滤波降噪（复用数组）--- 根据位置调整滤波器参数
         kalmanFilter.adjustParametersForPosition(currentPosition);
@@ -159,6 +106,11 @@ public class StepDetector {
 
         // 阶段6: 去除误检峰值 根据间距中位数过滤近距离峰值
         removeFalsePeaks(enhancedData);
+
+        // 阶段6.5: 专门去除双峰（手持大幅度摆动时的子峰值）
+        if (currentPosition == PositionDetector.PhonePosition.HAND_SWING) {
+            removeDoublePeaks(enhancedData);
+        }
 
         // 新增：合理性检查，2秒内最多6步（对应180步/分钟的跑步速度）
         // 合理性检查：根据位置调整最大步数
@@ -201,7 +153,7 @@ public class StepDetector {
             case CHEST:
                 return 0.6;  // 胸前：较低阈值
             case HAND_SWING:
-                return 0.9;  // 手持摆动：中等阈值
+                return 0.9;  // 手持摆动：恢复原始值，用双峰检测代替
             case HAND_HELD:
                 return 1.0;  // 手持静止：较高阈值
             case BAG:
@@ -217,15 +169,15 @@ public class StepDetector {
     private int[] getNRangeForPosition(PositionDetector.PhonePosition position) {
         switch (position) {
             case PANTS_POCKET:
-                return new int[]{3, 6};  // 口袋：小窗口
+                return new int[]{6, 8};  // 口袋：大窗口，减少漏检
             case CHEST:
                 return new int[]{3, 7};  // 胸前：中小窗口
             case HAND_SWING:
-                return new int[]{4, 8};  // 手持摆动：中等窗口
+                return new int[]{3, 5};  // 手持摆动：恢复原始值
             case HAND_HELD:
                 return new int[]{4, 8};  // 手持静止：中等窗口
             case BAG:
-                return new int[]{3, 7};  // 包里：中小窗口
+                return new int[]{6, 8};  // 包里：与口袋相同
             default:
                 return new int[]{3, 7};  // 未知：默认
         }
@@ -237,19 +189,19 @@ public class StepDetector {
     private int getMaxStepsForPosition(PositionDetector.PhonePosition position) {
         switch (position) {
             case PANTS_POCKET:
-                return 6;  // 口袋：降低到6
+                return 8;  // 口袋：大窗口允许更多步数
 
             case CHEST:
                 return 5;  // 胸前：降低到5
 
             case HAND_SWING:
-                return 5;  // 手持摆动：降低到5
+                return 5;  // 手持摆动：恢复原始值
 
             case HAND_HELD:
                 return 4;  // 手持静止：降低到4（通常不应该有很多步）
 
             case BAG:
-                return 6;  // 包里：降低到6
+                return 8;  // 包里：与口袋相同
 
             default:
                 return 5;  // 未知：默认5
@@ -322,14 +274,6 @@ public class StepDetector {
     private double[] enhancePeaksToBuffer(double[] data, double[] output) {
         // 使用连续函数动态计算增强指数
         double exponent;
-//        if (signalStrength < 0.3) {
-//            exponent = 1.6;
-//        } else if (signalStrength > 1.0) {
-//            exponent = 1.3;
-//        } else {
-//            // 线性插值：0.3->1.6, 1.0->1.3
-//            exponent = 1.6 - (signalStrength - 0.3) / (1.0 - 0.3) * 0.3;
-//        }
 
         switch (currentPosition) {
             case PANTS_POCKET:
@@ -341,8 +285,8 @@ public class StepDetector {
                 exponent = 1.7;
                 break;
             case HAND_SWING:
-                // 手持摆动：温和增强（降低，因为手持信号已经很强）
-                exponent = 1.3;
+                // 手持摆动：恢复原始值
+                exponent = 1.1;
                 break;
             case HAND_HELD:
                 // 手持静止：最温和
@@ -377,11 +321,6 @@ public class StepDetector {
             temp[1] = (output[0] + output[1] * 2 + output[2]) / 4.0;
             temp[data.length - 2] = (output[data.length - 3] + output[data.length - 2] * 2 + output[data.length - 1]) / 4.0;
             temp[data.length - 1] = output[data.length - 1];
-
-            // 中间用5点加权平滑
-//            for (int i = 2; i < data.length - 2; i++) {
-//                temp[i] = (output[i - 2] + output[i - 1] * 2 + output[i] * 3 + output[i + 1] * 2 + output[i + 2]) / 10.0;
-//            }
 
             // 口袋用3点平滑（保留细节），其他用5点平滑
             int smoothWindow;
@@ -425,9 +364,6 @@ public class StepDetector {
         }
         double stdDev = Math.sqrt(varianceSum / data.length);
 
-        // 使用均值 + 0.9倍标准差作为阈值，更适应不同强度的步态，只检测更显著的峰值
-//        return mean + 0.9 * stdDev;
-
         // 根据位置调整阈值系数
         double coefficient;
         switch (currentPosition) {
@@ -438,7 +374,7 @@ public class StepDetector {
                 coefficient = 0.85;  // 胸前：提高阈值
                 break;
             case HAND_SWING:
-                coefficient = 0.95;  // 手持摆动：更严格的阈值
+                coefficient = 1.15;  // 手持摆动：恢复原始值
                 break;
             case HAND_HELD:
                 coefficient = 1.0;   // 手持静止：最严格
@@ -516,45 +452,35 @@ public class StepDetector {
         }
         //② 计算中位数
         int medianDist = findMedian(distances);
-        //③ 提高阈值系数从0.4到0.8，更严格地去除近距离峰值
-//        double threshold = medianDist * 0.8;
-
-        //③ 根据信号强度自适应调整阈值系数
-//        double thresholdRatio;
-//        if (signalStrength < 0.5) {
-//            // 弱信号（胸前）：更严格，避免多检
-//            thresholdRatio = 0.9;
-//        } else {
-//            // 强信号（手持）：稍宽松，避免漏检
-//            thresholdRatio = 0.85;
-//        }
 
         // 根据位置调整阈值系数（提高系数，加强近距离峰值过滤）
         double thresholdRatio;
         switch (currentPosition) {
             case PANTS_POCKET:
-                thresholdRatio = 0.75;   // 口袋：（原0.65，提高到0.75）
+                thresholdRatio = 0.65;   // 口袋：放宽过滤，保留更多峰值（避免漏检）
                 break;
             case CHEST:
                 thresholdRatio = 0.80;   // 胸前：（原0.70，提高到0.80）
                 break;
             case HAND_SWING:
-                thresholdRatio = 0.85;   // 手持摆动：（原0.80，提高到0.85）
+                thresholdRatio = 0.90;   // 手持摆动：恢复原始值
                 break;
             case HAND_HELD:
                 thresholdRatio = 0.90;   // 手持静止：（原0.85，提高到0.90）
                 break;
             case BAG:
-                thresholdRatio = 0.70;   // 包里：（原0.60，提高到0.70）
+                thresholdRatio = 0.65;   // 包里：与口袋相同
                 break;
             default:
                 thresholdRatio = 0.80;   // 未知：（原0.75，提高到0.80）
         }
 
-
-        // 增加绝对最小距离：10个样本 = 200ms@50Hz = 最快300步/分钟（人类极限）
-        // 低于此间距的峰值一定是误检
-        double threshold = Math.max(medianDist * thresholdRatio, 10.0);
+        // 增加绝对最小距离：根据位置调整
+        // 口袋/手持摆动：8个样本 = 160ms（允许更快的步频）
+        // 其他模式：10个样本 = 200ms（人类极限）
+        int minDistance = (currentPosition == PositionDetector.PhonePosition.PANTS_POCKET ||
+                           currentPosition == PositionDetector.PhonePosition.HAND_SWING) ? 8 : 10;
+        double threshold = Math.max(medianDist * thresholdRatio, minDistance);
 
         //误检的峰值索引下标（需要剔除的）
         List<Integer> toRemove = new ArrayList<>();
@@ -566,18 +492,10 @@ public class StepDetector {
                 double peak1 = data[stepIndices.get(i)];
                 double peak2 = data[stepIndices.get(i + 1)];
 
-                // 只有当峰值差异明显时才去除较小的
-//                if (Math.abs(peak1 - peak2) > thres * 0.2) {
-//                    if (peak1 > peak2) {
-//                        toRemove.add(stepIndices.get(i + 1));
-//                    } else {
-//                        toRemove.add(stepIndices.get(i));
-//                    }
-//                }
-                // 口袋和包里模式：只在差异非常明显时才去除
+                // 口袋、包里和手持摆动模式：只在差异非常明显时才去除（避免漏检）
                 if (currentPosition == PositionDetector.PhonePosition.PANTS_POCKET ||
                         currentPosition == PositionDetector.PhonePosition.BAG) {
-                    if (Math.abs(peak1 - peak2) > thres * 0.6) {
+                    if (Math.abs(peak1 - peak2) > thres * 1.0) {
                         if (peak1 > peak2) {
                             toRemove.add(stepIndices.get(i + 1));
                         } else {
@@ -605,6 +523,61 @@ public class StepDetector {
                 }
             }
         }
+    }
+
+    /**
+     * 专门去除双峰（手持大幅度摆动时产生的子峰值）
+     * 双峰特征：两个峰值距离较近（<15样本），且第二个峰值明显小于第一个
+     */
+    private void removeDoublePeaks(double[] data) {
+        if (stepIndices.size() < 2) {
+            return;
+        }
+
+        // 双峰判定条件：
+        // 1. 距离 < 15样本（300ms）- 大幅度摆动双峰间距约12-15样本
+        // 2. 第二个峰值 < 第一个峰值的80% - 子峰明显小于主峰
+        int maxDoublePeakDistance = 15;
+        double peakRatioThreshold = 0.8;
+
+        List<Integer> filteredIndices = new ArrayList<>();
+        int i = 0;
+
+        while (i < stepIndices.size()) {
+            int currentIdx = stepIndices.get(i);
+            double currentPeak = data[currentIdx];
+
+            // 检查下一个峰值是否与当前峰值构成双峰
+            if (i + 1 < stepIndices.size()) {
+                int nextIdx = stepIndices.get(i + 1);
+                int dist = nextIdx - currentIdx;
+
+                if (dist <= maxDoublePeakDistance) {
+                    double nextPeak = data[nextIdx];
+
+                    // 如果下一个峰值明显较小，跳过它（它是子峰）
+                    if (nextPeak < currentPeak * peakRatioThreshold) {
+                        filteredIndices.add(currentIdx);  // 保留当前（主峰）
+                        i += 2;  // 跳过下一个（子峰）
+                        continue;
+                    }
+                    // 如果当前峰值明显较小，跳过当前（它是子峰）
+                    else if (currentPeak < nextPeak * peakRatioThreshold) {
+                        filteredIndices.add(nextIdx);  // 保留下一个（主峰）
+                        i += 2;  // 跳过当前和下一个
+                        continue;
+                    }
+                }
+            }
+
+            // 正常情况，保留当前峰值
+            filteredIndices.add(currentIdx);
+            i++;
+        }
+
+        // 重建stepIndices
+        stepIndices.clear();
+        stepIndices.addAll(filteredIndices);
     }
 
     // 新增：保留最强的N个峰值

@@ -13,10 +13,6 @@ public class KalmanFilter {
     private int windowIndex;
     private boolean isInitialized;
 
-//    public KalmanFilter() {
-//        this(0.02, 0.25, 5);
-//    }
-
     public KalmanFilter() {
         this(0.03, 0.22, 5);
     }
@@ -32,51 +28,6 @@ public class KalmanFilter {
         this.isInitialized = false;
     }
 
-    //阶段1: 卡尔曼滤波降噪
-//    public double[] filter(double[] data) {
-//        if (data == null || data.length == 0) {
-//            return new double[0];
-//        }
-//
-//        //① 预处理: 3σ原则剔除异常值
-//        double[] data0 = preprocessData(data);
-//        int n0 = data0.length;
-//        double[] data2 = new double[n0];
-//
-//        int initWin = Math.min(winSize, n0);
-//        //② 初始化: 用前5个数据均值初始化 xHat
-//        xHat = calculateMean(data0, 0, initWin);
-//        P = 1.0;
-//
-//        for (int i = 0; i < initWin; i++) {
-//            data2[i] = xHat;
-//        }
-//
-//        //③ 自适应滤波: 根据局部方差动态调整 Q 和 R
-//        for (int k = initWin; k < n0; k++) {
-//            int winStart = Math.max(0, k - winSize);
-//            // 根据数据局部方差动态调整Q和R
-//            double localVar = calculateVariance(data0, winStart, k);
-//
-//            double Q = QBase * (1 + localVar * 0.9); // 方差大→Q增大→更相信新数据
-//            double R = RBase / (1 + localVar * 0.6); // 方差大→R减小→降低测量噪声权重 更相信估计值
-//
-//            double xHatMinus = xHat;
-//            double PMinus = P + Q;
-//
-//            double K = PMinus / (PMinus + R);
-//            xHat = xHatMinus + K * (data0[k] - xHatMinus);
-//            P = (1 - K) * PMinus;
-//
-//            data2[k] = xHat;
-//        }
-//
-//        // 移除额外的滑动平均平滑，卡尔曼滤波已经是最优估计
-//        // ④ 后处理: 3点滑动平均进一步平滑
-//        // data2 = smoothData(data2, 3);
-//
-//        return data2;
-//    }
     public double[] filter(double[] data) {
         double[] output = new double[data.length];
         return filterToBuffer(data, output);
@@ -156,8 +107,8 @@ public class KalmanFilter {
         switch (position) {
             case PANTS_POCKET:
                 // 口袋：信号弱且噪声多，更平滑、更不信任测量
-                this.QBaseAdj = QBase * 0.6;   // 降低过程噪声估计→更平滑
-                this.RBaseAdj = RBase * 1.5;   // 增大测量噪声估计→更相信预测
+                this.QBaseAdj = QBase * 0.8;   // 降低过程噪声估计→更平滑
+                this.RBaseAdj = RBase * 1.2;   // 增大测量噪声估计→更相信预测
                 break;
             case CHEST:
                 // 胸前：中等参数，稍偏平滑
